@@ -75,33 +75,41 @@ function createOnlineDashboard(myUsername) {
     };
 }
 
-function refreshFriends(myUsername) {
+async function refreshFriends(myUsername) {
     const list = document.getElementById('friends-list');
     const countLabel = document.getElementById('online-count');
     if (!list) return;
-    fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users.json`)
-        .then(res => res.json())
-        .then(data => {
-            list.innerHTML = "";
-            let count = 0;
-            const now = Date.now();
+    try {
+        const followingRes = await fetch(`https://api.github.com/users/${myUsername}/following?per_page=100`);
+        const followingData = await followingRes.json();
+        const followingNames = new Set(followingData.map(user => user.login.toLowerCase()));
 
-            for (let user in data) {
-                const isOnline = (now - data[user].last_seen) < 45000;
-                if (isOnline && user !== myUsername) {
-                    count++;
-                    const row = document.createElement('div');
-                    row.style.cssText = "padding:10px; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; cursor:pointer; border-radius:8px; transition:0.2s;";
-                    row.onmouseover = () => row.style.backgroundColor = "#f6f8fa";
-                    row.onmouseout = () => row.style.backgroundColor = "transparent";
-                    row.onclick = () => window.open(`https://github.com/${user}`, '_blank');
-                    row.innerHTML = `<span style="width:8px; height:8px; background:#2ea44f; border-radius:50%;
-                    margin-right:12px; box-shadow:0 0 5px #2ea44f;"></span>
-                    <b style="color:#0969da;font-size:13px;">${user}</b>`;
-                    list.appendChild(row);
-                }
+        const firebaseRes = await fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users.json`);
+        const firebaseData = await firebaseRes.json();
+
+        list.innerHTML = "";
+        let count = 0;
+        const now = Date.now();
+
+        for (let user in firebaseData) {
+            const userLower = user.toLowerCase();
+            const isFollowing = followingNames.has(userLower);
+            const isOnline = (now - firebaseData[user].last_seen) < 45000;
+
+            if (isFollowing && isOnline && userLower !== myUsername) {
+                count++;
+                const row = document.createElement('div');
+                row.style.cssText = "padding:10px; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; cursor:pointer; border-radius:8px; transition:0.2s;";
+                row.onmouseover = () => row.style.backgroundColor = "#f6f8fa";
+                row.onmouseout = () => row.style.backgroundColor = "transparent";
+                row.onclick = () => window.open(`https://github.com/${user}`, '_blank');
+                row.innerHTML = `<span style="width:8px; height:8px; background:#2ea44f; border-radius:50%; margin-right:12px; box-shadow:0 0 5px #2ea44f;"></span> <b style="color:#0969da; font-size:13px;">${user}</b>`;
+                list.appendChild(row);
             }
-            if (countLabel) countLabel.innerText = count;
-            if (count === 0) list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No one is online </div>";
-        }).catch(() => { list.innerHTML = "Error loading data"; });
+        }
+        if (countLabel) countLabel.innerText = count;
+        if (count === 0) list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No followed friends online</div>";
+    } catch (e) {
+        list.innerHTML = "<div style='text-align:center; padding:20px; color:red;'>Fetch Error</div>";
+    }
 }
