@@ -2,23 +2,13 @@
     "manifest_version": 3,
     "name": "GitHub Friends Online",
     "version": "1.0",
-    "permissions": [
-        "storage"
-    ],
-    "host_permissions": [
-        "https://github.com/*"
-    ],
+    "permissions": ["storage"],
+    "host_permissions": ["https://*.github.com/*"],
     "content_scripts": [
         {
-            "matches": [
-                "https://github.com/*"
-            ],
-            "js": [
-                "content.js"
-            ],
-            "css": [
-                "style.css"
-            ]
+            "matches": ["https://*.github.com/*"],
+            "js": ["content.js"],
+            "run_at": "document_end"
         }
     ]
 }
