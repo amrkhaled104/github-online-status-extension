@@ -2,11 +2,13 @@ window.addEventListener('load', () => {
     const myUsername = document.querySelector('meta[name="user-login"]')?.content?.toLowerCase();
 
     if (myUsername) {
-        const updateStatus = () => {
-            fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users/${myUsername}.json`, {
-                method: 'PATCH',
-                body: JSON.stringify({ last_seen: Date.now() })
-            });
+        const updateStatus = async () => {
+            try {
+                await fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users/${myUsername}.json`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ last_seen: Date.now() })
+                });
+            } catch (e) { console.log("Status update failed - offline mode"); }
         };
         updateStatus();
         setInterval(updateStatus, 60000);
@@ -17,64 +19,6 @@ window.addEventListener('load', () => {
     }
 });
 
-function createOnlineDashboard(myUsername) {
-    const style = document.createElement('style');
-    style.innerHTML = `
-        @keyframes fireMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        @keyframes fireGlow { 0% { box-shadow: 0 0 5px rgba(46,164,79,0.4); } 50% { box-shadow: 0 0 15px rgba(46,164,79,0.6); } 100% { box-shadow: 0 0 5px rgba(46,164,79,0.4); } }
-        .gh-fire-btn {
-            background: #f6f8fa !important; color: #1f2328 !important; border: 1px solid #d0d7de !important;
-            padding: 8px 16px !important; font-size: 13px !important; font-weight: 600 !important;
-            border-radius: 6px !important; cursor: pointer !important;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-            display: flex !important; align-items: center !important; gap: 8px !important;
-            animation: fireGlow 2s infinite ease-in-out !important; outline: none !important;
-        }
-        .gh-fire-btn:hover {
-            background: linear-gradient(-45deg, #ff0000, #ff4500, #ff8c00, #ff0000) !important;
-            background-size: 400% 400% !important; color: white !important; border-color: #ff4500 !important;
-            animation: fireMove 3s ease infinite !important; transform: scale(1.05) translateY(-3px) !important;
-            box-shadow: 0 8px 15px rgba(255, 69, 0, 0.4) !important;
-        }
-        .online-dot { width: 8px; height: 8px; background: #2ea44f; border-radius: 50%; }
-        .gh-fire-btn:hover .online-dot { background: #fff; box-shadow: 0 0 8px #fff; }
-    `;
-    document.head.appendChild(style);
-
-    const btn = document.createElement('button');
-    btn.className = 'gh-fire-btn';
-    btn.innerHTML = `<span class="online-dot"></span> Friends Online`;
-    btn.style.cssText = "position:fixed; bottom:20px; left:20px; z-index:10000;";
-
-    const side = document.createElement('div');
-    side.id = "friends-sidebar-main";
-    side.style.cssText = `
-        position: fixed; bottom: 75px; left: -320px; width: 280px; height: 400px; 
-        background: white; border: 1px solid #d0d7de; border-radius: 12px; z-index: 9999; 
-        opacity: 0; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        box-shadow: 0 12px 28px rgba(140, 149, 159, 0.3); display: flex; flex-direction: column; overflow: hidden;
-    `;
-
-    side.innerHTML = `
-        <div style="padding:15px; background:#f6f8fa; border-bottom:1px solid #d0d7de; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:600; color:#1f2328; font-size:14px; font-family:sans-serif;">Live Tracker</span>
-            <span id="online-count" style="background:#dafbe1; color:#1a7f37; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:bold; border:1px solid rgba(27,31,35,0.1); font-family:sans-serif;">0</span>
-        </div>
-        <div id="friends-list" style="padding:10px; overflow-y:auto; flex:1; background:white; font-family:sans-serif;"></div>
-    `;
-
-    document.body.appendChild(btn);
-    document.body.appendChild(side);
-
-    let open = false;
-    btn.onclick = () => {
-        open = !open;
-        side.style.left = open ? "20px" : "-320px";
-        side.style.opacity = open ? "1" : "0";
-        if (open) refreshFriends(myUsername);
-    };
-}
-
 async function refreshFriends(myUsername) {
     const list = document.getElementById('friends-list');
     const countLabel = document.getElementById('online-count');
@@ -83,55 +27,65 @@ async function refreshFriends(myUsername) {
     list.innerHTML = "<div style='text-align:center; padding:20px; color:gray; font-size:12px;'>Loading...</div>";
 
     try {
-        const followingRes = await fetch(`https://api.github.com/users/${myUsername}/following?per_page=100`);
+        const [followingRes, firebaseRes] = await Promise.all([
+            fetch(`https://api.github.com/users/${myUsername}/following?per_page=100`),
+            fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users.json`)
+        ]);
+
         const followingData = await followingRes.json();
+        const firebaseData = await firebaseRes.json();
         const followingNames = new Set(followingData.map(u => u.login.toLowerCase()));
 
-        const firebaseRes = await fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users.json`);
-        const firebaseData = await firebaseRes.json();
-
-        list.innerHTML = "";
-        let count = 0;
         const now = Date.now();
-
-        console.log("--- debug  ---");
+        let allUsers = [];
+        let seenNames = new Set();
 
         for (let user in firebaseData) {
             const userLower = user.toLowerCase();
+
+            if (!followingNames.has(userLower) || userLower === myUsername || seenNames.has(userLower)) continue;
+
+            seenNames.add(userLower);
             const lastSeen = firebaseData[user].last_seen;
+            const diff = Math.floor((now - lastSeen) / 1000);
+            const isOnline = diff < 120;
 
-            const diffInSeconds = Math.floor((now - lastSeen) / 1000);
-            const isOnline = diffInSeconds < 120;
-            const isFollowing = followingNames.has(userLower);
-
-            if (isFollowing && userLower !== myUsername) {
-                console.log(`User: ${userLower} | Active since: ${diffInSeconds}s ago | Status: ${isOnline ? 'Online' : 'Offline'}`);
-            }
-
-            if (isFollowing && isOnline && userLower !== myUsername) {
-                count++;
-                const row = document.createElement('div');
-                row.style.cssText = "padding:10px; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; cursor:pointer; border-radius:8px; transition:0.2s;";
-                row.onmouseover = () => row.style.backgroundColor = "#f6f8fa";
-                row.onmouseout = () => row.style.backgroundColor = "transparent";
-                row.onclick = () => window.open(`https://github.com/${user}`, '_blank');
-
-                row.innerHTML = `
-                    <span style="width:8px; height:8px; background:#2ea44f; border-radius:50%; margin-right:12px; box-shadow:0 0 5px #2ea44f;"></span>
-                    <b style="color:#0969da; font-size:13px;">${user}</b>
-                `;
-                list.appendChild(row);
-            }
+            allUsers.push({ name: user, diff, isOnline });
         }
 
-        if (countLabel) countLabel.innerText = count;
-        if (count === 0) {
-            list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No followed friends online</div>";
+        allUsers.sort((a, b) => a.diff - b.diff);
+
+        list.innerHTML = "";
+
+        if (allUsers.length === 0) {
+            list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No active friends found</div>";
         }
-        console.log("---  debug ---");
+
+        allUsers.forEach(user => {
+            const timeText = user.diff < 60 ? `${user.diff}s ago` :
+                user.diff < 3600 ? `${Math.floor(user.diff / 60)}m ago` :
+                    `${Math.floor(user.diff / 3600)}h ago`;
+
+            const row = document.createElement('div');
+            row.style.cssText = "padding:10px; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; justify-content:space-between; cursor:pointer; border-radius:8px; transition: background 0.2s;";
+            row.onmouseover = () => row.style.backgroundColor = "#f6f8fa";
+            row.onmouseout = () => row.style.backgroundColor = "transparent";
+            row.onclick = () => window.open(`https://github.com/${user.name}`, '_blank');
+
+            row.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <span style="width:8px; height:8px; background:${user.isOnline ? '#2ea44f' : '#8c959f'}; border-radius:50%; margin-right:12px; box-shadow:${user.isOnline ? '0 0 5px #2ea44f' : 'none'};"></span>
+                    <b style="color:${user.isOnline ? '#0969da' : '#1f2328'}; font-size:13px;">${user.name}</b>
+                </div>
+                <span style="font-size:11px; color:gray;">${user.isOnline ? 'Active' : timeText}</span>
+            `;
+            list.appendChild(row);
+        });
+
+        if (countLabel) countLabel.innerText = allUsers.filter(u => u.isOnline).length;
 
     } catch (e) {
-        console.error("Refresh Error:", e);
-        list.innerHTML = "<div style='text-align:center; padding:20px; color:red;'>Connection Error</div>";
+        console.error(e);
+        list.innerHTML = "<div style='text-align:center; padding:20px; color:#cf222e;'>Connection failed</div>";
     }
 }
