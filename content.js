@@ -80,7 +80,7 @@ async function refreshFriends(myUsername) {
     const countLabel = document.getElementById('online-count');
     if (!list) return;
 
-    list.innerHTML = "<div style='text-align:center; padding:20px; color:gray; font-size:12px;'>Syncing friends...</div>";
+    list.innerHTML = "<div style='text-align:center; padding:20px; color:gray; font-size:12px;'>Loading...</div>";
 
     try {
         const followingRes = await fetch(`https://api.github.com/users/${myUsername}/following?per_page=100`);
@@ -94,14 +94,14 @@ async function refreshFriends(myUsername) {
         let count = 0;
         const now = Date.now();
 
-        console.log("--- Syncing Status ---");
+        console.log("--- debug  ---");
 
         for (let user in firebaseData) {
             const userLower = user.toLowerCase();
             const lastSeen = firebaseData[user].last_seen;
-            
+
             const diffInSeconds = Math.floor((now - lastSeen) / 1000);
-            const isOnline = diffInSeconds < 300; 
+            const isOnline = diffInSeconds < 120;
             const isFollowing = followingNames.has(userLower);
 
             if (isFollowing && userLower !== myUsername) {
@@ -115,7 +115,7 @@ async function refreshFriends(myUsername) {
                 row.onmouseover = () => row.style.backgroundColor = "#f6f8fa";
                 row.onmouseout = () => row.style.backgroundColor = "transparent";
                 row.onclick = () => window.open(`https://github.com/${user}`, '_blank');
-                
+
                 row.innerHTML = `
                     <span style="width:8px; height:8px; background:#2ea44f; border-radius:50%; margin-right:12px; box-shadow:0 0 5px #2ea44f;"></span>
                     <b style="color:#0969da; font-size:13px;">${user}</b>
@@ -128,7 +128,7 @@ async function refreshFriends(myUsername) {
         if (count === 0) {
             list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No followed friends online</div>";
         }
-        console.log("--- Syncing Finished ---");
+        console.log("---  debug ---");
 
     } catch (e) {
         console.error("Refresh Error:", e);
