@@ -9,7 +9,7 @@ window.addEventListener('load', () => {
             });
         };
         updateStatus();
-        setInterval(updateStatus, 30000);
+        setInterval(updateStatus, 60000);
     }
 
     if (document.querySelector('.vcard-details')) {
@@ -79,10 +79,13 @@ async function refreshFriends(myUsername) {
     const list = document.getElementById('friends-list');
     const countLabel = document.getElementById('online-count');
     if (!list) return;
+
+    list.innerHTML = "<div style='text-align:center; padding:20px; color:gray; font-size:12px;'>Syncing friends...</div>";
+
     try {
         const followingRes = await fetch(`https://api.github.com/users/${myUsername}/following?per_page=100`);
         const followingData = await followingRes.json();
-        const followingNames = new Set(followingData.map(user => user.login.toLowerCase()));
+        const followingNames = new Set(followingData.map(u => u.login.toLowerCase()));
 
         const firebaseRes = await fetch(`https://github-online-tracker-default-rtdb.firebaseio.com/users.json`);
         const firebaseData = await firebaseRes.json();
@@ -91,10 +94,19 @@ async function refreshFriends(myUsername) {
         let count = 0;
         const now = Date.now();
 
+        console.log("--- Syncing Status ---");
+
         for (let user in firebaseData) {
             const userLower = user.toLowerCase();
+            const lastSeen = firebaseData[user].last_seen;
+            
+            const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+            const isOnline = diffInSeconds < 300; 
             const isFollowing = followingNames.has(userLower);
-            const isOnline = (now - firebaseData[user].last_seen) < 45000;
+
+            if (isFollowing && userLower !== myUsername) {
+                console.log(`User: ${userLower} | Active since: ${diffInSeconds}s ago | Status: ${isOnline ? 'Online' : 'Offline'}`);
+            }
 
             if (isFollowing && isOnline && userLower !== myUsername) {
                 count++;
@@ -103,13 +115,23 @@ async function refreshFriends(myUsername) {
                 row.onmouseover = () => row.style.backgroundColor = "#f6f8fa";
                 row.onmouseout = () => row.style.backgroundColor = "transparent";
                 row.onclick = () => window.open(`https://github.com/${user}`, '_blank');
-                row.innerHTML = `<span style="width:8px; height:8px; background:#2ea44f; border-radius:50%; margin-right:12px; box-shadow:0 0 5px #2ea44f;"></span> <b style="color:#0969da; font-size:13px;">${user}</b>`;
+                
+                row.innerHTML = `
+                    <span style="width:8px; height:8px; background:#2ea44f; border-radius:50%; margin-right:12px; box-shadow:0 0 5px #2ea44f;"></span>
+                    <b style="color:#0969da; font-size:13px;">${user}</b>
+                `;
                 list.appendChild(row);
             }
         }
+
         if (countLabel) countLabel.innerText = count;
-        if (count === 0) list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No followed friends online</div>";
+        if (count === 0) {
+            list.innerHTML = "<div style='text-align:center; padding:40px; color:gray; font-size:12px;'>No followed friends online</div>";
+        }
+        console.log("--- Syncing Finished ---");
+
     } catch (e) {
-        list.innerHTML = "<div style='text-align:center; padding:20px; color:red;'>Fetch Error</div>";
+        console.error("Refresh Error:", e);
+        list.innerHTML = "<div style='text-align:center; padding:20px; color:red;'>Connection Error</div>";
     }
 }
