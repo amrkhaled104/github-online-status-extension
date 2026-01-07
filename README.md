@@ -1,4 +1,3 @@
-```markdown
 # 🔥 GitHub Live-Tracker
 
 A lightweight Chrome extension that allows you to track the real-time online status of the developers you follow on GitHub.
@@ -19,7 +18,6 @@ Follow these steps to get the extension running on your local machine:
 Open your terminal and run the following command:
 ```bash
 git clone [https://github.com/YOUR_USERNAME/github-live-tracker.git](https://github.com/YOUR_USERNAME/github-live-tracker.git)
-
 ```
 
 ### 2. Load the Extension in Chrome
