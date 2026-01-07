@@ -1,8 +1,8 @@
-# 🔥 GitHub Live-Tracker
+#  GitHub Live-Tracker
 
 A lightweight Chrome extension that allows you to track the real-time online status of the developers you follow on GitHub.
 
-## 🚀 Features
+##  Features
 
 - **Real-Time Tracking:** Syncs with a Firebase Realtime Database to provide up-to-date status for active users.
 - **Following-Only Filter:** Respects your privacy by only displaying status updates for users in your `following` list.
@@ -10,7 +10,7 @@ A lightweight Chrome extension that allows you to track the real-time online sta
 - **Interactive UI:** A sleek, non-intrusive interface that blends perfectly with GitHub’s design, featuring a "Fire Glow" hover effect.
 - **Smart Grace Window:** Uses a 120-second threshold to handle network jitter and device time-drift, ensuring accurate "Online" indicators.
 
-## 🛠️ Setup & Installation
+##  Setup & Installation
 
 Follow these steps to get the extension running on your local machine:
 
