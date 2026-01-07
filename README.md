@@ -1,40 +1,53 @@
-#  GitHub Live-Tracker
+# GitHub Live-Tracker
 
-A high-performance Chrome extension that integrates a real-time online status dashboard directly into the GitHub UI. Built to bridge the gap between static learning and real-world application.
+A Chrome extension designed to solve a simple problem: knowing which of your followed developers are currently active on GitHub.
 
-##  Where it appears
-The extension is context-aware and integrates seamlessly into the GitHub interface:
-- **Profile Pages:** The "Friends Online" dashboard appears exclusively on GitHub profile pages.
-- **Placement:** Look for the glowing button at the **bottom-left sidebar**, right under the user's bio and details (`.vcard-details`).
+## Where it appears
 
-##  Features
+The "Friends Online" dashboard integrates directly into the GitHub sidebar. It becomes visible whenever you visit any of the main profile sections:
 
-- **Live Activity Tracking:** Syncs with Firebase Realtime Database to show who is currently active.
-- **Smart Sorting:** Automatically prioritizes "Active" users at the top, followed by "Recently Offline" users.
-- **Time-Ago Indicators:** Displays human-readable timestamps (e.g., *Active now*, *5m ago*, *2h ago*) by calculating device time-drift.
-- **Privacy-First:** Only tracks and displays status for users within your `following` list.
-- **Performance Optimized:** Uses `Promise.all` for parallel fetching from GitHub and Firebase, ensuring zero UI lag.
+* Overview
+* Repositories
+* Stars
+* Projects
+It is located on the left-hand sidebar, specifically positioned under the user profile details.
 
-##  How it works (The Tech)
-Instead of practicing with static JSON files, this project interacts with the **Live GitHub DOM**:
-1. **Heartbeat:** Every 60 seconds, it sends a "pulse" to Firebase with your current timestamp.
-2. **Dynamic Injection:** It monitors the page for specific GitHub CSS classes to inject the dashboard.
-3. **Async Logic:** Handles complex asynchronous state management to merge API data with real-time database records.
+## Core Features
 
-## 📥 Installation
+* Real-time status updates using Firebase.
+* Intelligent sorting that keeps active users at the top of the list.
+* Dynamic time-ago indicators showing exactly when a user was last seen (e.g., 10s ago, 5m ago, 2h ago).
+* Privacy-focused filtering that only tracks users in your following list.
 
-1. **Clone the Repository:**
-   ```bash
-   git clone [https://github.com/YOUR_USERNAME/github-live-tracker.git](https://github.com/YOUR_USERNAME/github-live-tracker.git)
+## Development Context
+
+This project was built to move beyond practicing Fetch API on static JSON files. It focuses on real-world implementation challenges:
+
+* Data Synchronization: Using Promise.all to fetch GitHub and Firebase data concurrently to ensure zero UI lag.
+* Time Synchronization: Implementing logic to calculate time-drift between different devices for accurate "Active Now" status.
+* State Management: Handling asynchronous status updates (Heartbeats) every 60 seconds without affecting page performance.
+
+##  Setup & Installation
+
+Follow these steps to get the extension running on your local machine:
+
+### 1. Clone the Repository
+Open your terminal and run the following command:
+```bash
+git clone [https://github.com/amrkhaled104/github-online-status-extension](https://github.com/amrkhaled104/github-online-status-extension)
 
 ```
 
-2. **Load in Chrome:**
-* Go to `chrome://extensions/`.
-* Enable **Developer mode**.
-* Click **Load unpacked** and select the project folder.
+### 2. Load the Extension in Chrome
 
+* Open Google Chrome and navigate to `chrome://extensions/`.
+* Enable **Developer mode** (toggle switch in the top right corner).
+* Click the **Load unpacked** button.
+* Select the project folder.
 
-3. **Usage:** - Refresh any GitHub profile page.
-* Click the **Friends Online** button at the bottom left to toggle the sidebar.
+### 3. Start Tracking
+
+* Go to any [GitHub](https://github.com) page.
+* Look for the **Friends Online** button at the bottom left of your screen.
+* Click it to see who is currently active!
 
