@@ -34,7 +34,7 @@ Follow these steps to get the extension running on your local machine:
 ### 1. Clone the Repository
 Open your terminal and run the following command:
 ```bash
-git clone [https://github.com/amrkhaled104/github-online-status-extension](https://github.com/amrkhaled104/github-online-status-extension)
+git clone https://github.com/amrkhaled104/github-online-status-extension
 
 ```
 
